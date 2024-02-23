@@ -5,6 +5,7 @@ option go_package = "github.com/diSpector/activity.git/pkg/activity/grpc";
 
 service ActivityApi {
     rpc GetActivity(Empty) returns (Activity);
+    rpc GetActivityStream(Empty) returns (stream Description);
 }
 
 message Empty{}
@@ -19,6 +20,6 @@ message Activity{
     float accessibility = 7;
 }
 
-message Text {
+message Description {
     string text = 1;
 }

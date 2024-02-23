@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var streamFlag bool
+
 var rootCmd = &cobra.Command{
 	Use:   "root",
 	Short: "Root command",
@@ -21,4 +23,9 @@ func Execute() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
+
+func init() {
+	rootCmd.AddCommand(activityCmd)
+	activityCmd.Flags().BoolVarP(&streamFlag, `stream`, `s`, false, `use stream`)
 }

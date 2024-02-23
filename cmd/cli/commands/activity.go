@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -17,7 +18,7 @@ import (
 var activityCmd = &cobra.Command{
 	Use:   "activity",
 	Short: "get activity",
-	Long: `Get random activity from api`,
+	Long:  `Get random activity from api. Use flag "--stream" (-s) from stream output`,
 	Run: func(cmd *cobra.Command, args []string) {
 		conn, err := grpc.Dial("localhost:50053", grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
@@ -30,16 +31,31 @@ var activityCmd = &cobra.Command{
 
 		client := pb.NewActivityApiClient(conn)
 
-		activity, err := client.GetActivity(ctx, &pb.Empty{})
-		if err != nil {
-			log.Println(`api returns err:`, err)
-			return
+		if !streamFlag {
+			activity, err := client.GetActivity(ctx, &pb.Empty{})
+			if err != nil {
+				log.Println(`api returns err:`, err)
+				return
+			}
+
+			log.Println(activity)
+		} else {
+			stream, err := client.GetActivityStream(ctx, nil)
+			if err != nil {
+				log.Println(`err get stream`, err)
+				return
+			}
+
+			for {
+				letter, err := stream.Recv()
+				if err == io.EOF {
+					break
+				}
+				if err != nil {
+					log.Fatalln("err read letter from stream:", err)
+				}
+				log.Printf(letter.Text)
+			}
 		}
-
-		log.Println(activity)
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(activityCmd)
 }
