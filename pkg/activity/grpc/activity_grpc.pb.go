@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ActivityApiClient interface {
 	GetActivity(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Activity, error)
+	GetActivityStream(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ActivityApi_GetActivityStreamClient, error)
 }
 
 type activityApiClient struct {
@@ -42,11 +43,44 @@ func (c *activityApiClient) GetActivity(ctx context.Context, in *Empty, opts ...
 	return out, nil
 }
 
+func (c *activityApiClient) GetActivityStream(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ActivityApi_GetActivityStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ActivityApi_ServiceDesc.Streams[0], "/activity.ActivityApi/GetActivityStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &activityApiGetActivityStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type ActivityApi_GetActivityStreamClient interface {
+	Recv() (*Description, error)
+	grpc.ClientStream
+}
+
+type activityApiGetActivityStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *activityApiGetActivityStreamClient) Recv() (*Description, error) {
+	m := new(Description)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ActivityApiServer is the server API for ActivityApi service.
 // All implementations must embed UnimplementedActivityApiServer
 // for forward compatibility
 type ActivityApiServer interface {
 	GetActivity(context.Context, *Empty) (*Activity, error)
+	GetActivityStream(*Empty, ActivityApi_GetActivityStreamServer) error
 	mustEmbedUnimplementedActivityApiServer()
 }
 
@@ -56,6 +90,9 @@ type UnimplementedActivityApiServer struct {
 
 func (UnimplementedActivityApiServer) GetActivity(context.Context, *Empty) (*Activity, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetActivity not implemented")
+}
+func (UnimplementedActivityApiServer) GetActivityStream(*Empty, ActivityApi_GetActivityStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetActivityStream not implemented")
 }
 func (UnimplementedActivityApiServer) mustEmbedUnimplementedActivityApiServer() {}
 
@@ -88,6 +125,27 @@ func _ActivityApi_GetActivity_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ActivityApi_GetActivityStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ActivityApiServer).GetActivityStream(m, &activityApiGetActivityStreamServer{stream})
+}
+
+type ActivityApi_GetActivityStreamServer interface {
+	Send(*Description) error
+	grpc.ServerStream
+}
+
+type activityApiGetActivityStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *activityApiGetActivityStreamServer) Send(m *Description) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // ActivityApi_ServiceDesc is the grpc.ServiceDesc for ActivityApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -100,6 +158,12 @@ var ActivityApi_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ActivityApi_GetActivity_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "GetActivityStream",
+			Handler:       _ActivityApi_GetActivityStream_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "api/proto/activity.proto",
 }
