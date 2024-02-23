@@ -1,0 +1,24 @@
+syntax = "proto3";
+package activity;
+
+option go_package = "github.com/diSpector/activity.git/pkg/activity/grpc";
+
+service ActivityApi {
+    rpc GetActivity(Empty) returns (Activity);
+}
+
+message Empty{}
+
+message Activity{
+    string activity = 1;
+    string type = 2;
+    int32 participants = 3;
+    float price = 4;
+    string link = 5;
+    string key = 6;
+    float accessibility = 7;
+}
+
+message Text {
+    string text = 1;
+}
