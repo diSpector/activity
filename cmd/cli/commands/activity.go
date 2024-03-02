@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/credentials"
 
 	pb "github.com/diSpector/activity.git/pkg/activity/grpc"
 )
@@ -20,7 +20,17 @@ var activityCmd = &cobra.Command{
 	Short: "get activity",
 	Long:  `Get random activity from api. Use flag "--stream" (-s) from stream output`,
 	Run: func(cmd *cobra.Command, args []string) {
-		conn, err := grpc.Dial("localhost:50053", grpc.WithTransportCredentials(insecure.NewCredentials()))
+		creds, err := credentials.NewClientTLSFromFile(`/etc/keys/grpc/grpc_server.crt`, `mercator`)
+		if err != nil {
+			log.Println(`err create client with credentials:`, err)
+			os.Exit(1)
+		}
+
+		opts := []grpc.DialOption{
+			grpc.WithTransportCredentials(creds),
+		}
+
+		conn, err := grpc.Dial("localhost:50053", opts...)
 		if err != nil {
 			log.Println(`err dial grpc:`, err)
 			os.Exit(1)
