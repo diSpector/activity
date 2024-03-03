@@ -24,6 +24,9 @@ const _ = grpc.SupportPackageIsVersion7
 type ActivityApiClient interface {
 	GetActivity(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Activity, error)
 	GetActivityStream(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ActivityApi_GetActivityStreamClient, error)
+	AddActivity(ctx context.Context, in *Activity, opts ...grpc.CallOption) (*Empty, error)
+	ListActivities(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ActivityApi_ListActivitiesClient, error)
+	SearchActivities(ctx context.Context, in *Description, opts ...grpc.CallOption) (ActivityApi_SearchActivitiesClient, error)
 }
 
 type activityApiClient struct {
@@ -75,12 +78,88 @@ func (x *activityApiGetActivityStreamClient) Recv() (*Description, error) {
 	return m, nil
 }
 
+func (c *activityApiClient) AddActivity(ctx context.Context, in *Activity, opts ...grpc.CallOption) (*Empty, error) {
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, "/activity.ActivityApi/AddActivity", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *activityApiClient) ListActivities(ctx context.Context, in *Empty, opts ...grpc.CallOption) (ActivityApi_ListActivitiesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ActivityApi_ServiceDesc.Streams[1], "/activity.ActivityApi/ListActivities", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &activityApiListActivitiesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type ActivityApi_ListActivitiesClient interface {
+	Recv() (*Activity, error)
+	grpc.ClientStream
+}
+
+type activityApiListActivitiesClient struct {
+	grpc.ClientStream
+}
+
+func (x *activityApiListActivitiesClient) Recv() (*Activity, error) {
+	m := new(Activity)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *activityApiClient) SearchActivities(ctx context.Context, in *Description, opts ...grpc.CallOption) (ActivityApi_SearchActivitiesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ActivityApi_ServiceDesc.Streams[2], "/activity.ActivityApi/SearchActivities", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &activityApiSearchActivitiesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type ActivityApi_SearchActivitiesClient interface {
+	Recv() (*Activity, error)
+	grpc.ClientStream
+}
+
+type activityApiSearchActivitiesClient struct {
+	grpc.ClientStream
+}
+
+func (x *activityApiSearchActivitiesClient) Recv() (*Activity, error) {
+	m := new(Activity)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // ActivityApiServer is the server API for ActivityApi service.
 // All implementations must embed UnimplementedActivityApiServer
 // for forward compatibility
 type ActivityApiServer interface {
 	GetActivity(context.Context, *Empty) (*Activity, error)
 	GetActivityStream(*Empty, ActivityApi_GetActivityStreamServer) error
+	AddActivity(context.Context, *Activity) (*Empty, error)
+	ListActivities(*Empty, ActivityApi_ListActivitiesServer) error
+	SearchActivities(*Description, ActivityApi_SearchActivitiesServer) error
 	mustEmbedUnimplementedActivityApiServer()
 }
 
@@ -93,6 +172,15 @@ func (UnimplementedActivityApiServer) GetActivity(context.Context, *Empty) (*Act
 }
 func (UnimplementedActivityApiServer) GetActivityStream(*Empty, ActivityApi_GetActivityStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetActivityStream not implemented")
+}
+func (UnimplementedActivityApiServer) AddActivity(context.Context, *Activity) (*Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddActivity not implemented")
+}
+func (UnimplementedActivityApiServer) ListActivities(*Empty, ActivityApi_ListActivitiesServer) error {
+	return status.Errorf(codes.Unimplemented, "method ListActivities not implemented")
+}
+func (UnimplementedActivityApiServer) SearchActivities(*Description, ActivityApi_SearchActivitiesServer) error {
+	return status.Errorf(codes.Unimplemented, "method SearchActivities not implemented")
 }
 func (UnimplementedActivityApiServer) mustEmbedUnimplementedActivityApiServer() {}
 
@@ -146,6 +234,66 @@ func (x *activityApiGetActivityStreamServer) Send(m *Description) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _ActivityApi_AddActivity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Activity)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ActivityApiServer).AddActivity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/activity.ActivityApi/AddActivity",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ActivityApiServer).AddActivity(ctx, req.(*Activity))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ActivityApi_ListActivities_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ActivityApiServer).ListActivities(m, &activityApiListActivitiesServer{stream})
+}
+
+type ActivityApi_ListActivitiesServer interface {
+	Send(*Activity) error
+	grpc.ServerStream
+}
+
+type activityApiListActivitiesServer struct {
+	grpc.ServerStream
+}
+
+func (x *activityApiListActivitiesServer) Send(m *Activity) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _ActivityApi_SearchActivities_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Description)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(ActivityApiServer).SearchActivities(m, &activityApiSearchActivitiesServer{stream})
+}
+
+type ActivityApi_SearchActivitiesServer interface {
+	Send(*Activity) error
+	grpc.ServerStream
+}
+
+type activityApiSearchActivitiesServer struct {
+	grpc.ServerStream
+}
+
+func (x *activityApiSearchActivitiesServer) Send(m *Activity) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // ActivityApi_ServiceDesc is the grpc.ServiceDesc for ActivityApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -157,11 +305,25 @@ var ActivityApi_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetActivity",
 			Handler:    _ActivityApi_GetActivity_Handler,
 		},
+		{
+			MethodName: "AddActivity",
+			Handler:    _ActivityApi_AddActivity_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "GetActivityStream",
 			Handler:       _ActivityApi_GetActivityStream_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "ListActivities",
+			Handler:       _ActivityApi_ListActivities_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "SearchActivities",
+			Handler:       _ActivityApi_SearchActivities_Handler,
 			ServerStreams: true,
 		},
 	},

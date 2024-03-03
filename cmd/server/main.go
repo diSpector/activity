@@ -5,6 +5,8 @@ import (
 	"net"
 
 	"github.com/diSpector/activity.git/internal/server"
+	"github.com/diSpector/activity.git/internal/server/repository"
+	"github.com/diSpector/activity.git/internal/server/usecase"
 	"google.golang.org/grpc"
 
 	pb "github.com/diSpector/activity.git/pkg/activity/grpc"
@@ -16,7 +18,14 @@ const PORT = `50053`
 func main() {
 	log.Println(`server run`)
 
-	serv := server.New(API_URL)
+	actRepo, err := repository.NewActivitySqlLiteRepo(`../../storage/sqlite.db`)
+	if err != nil {
+		log.Fatalln(`err create repo:`, err)
+	}
+
+	actUseCase := usecase.NewActivityUseCaseImpl(actRepo)
+
+	serv := server.New(API_URL, actUseCase)
 
 	lis, err := net.Listen(`tcp`, `localhost:`+PORT)
 	if err != nil {

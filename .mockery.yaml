@@ -1,0 +1,8 @@
+with-expecter: true
+outpkg: "mocks"
+packages:
+    github.com/diSpector/activity.git/internal/server/repository: 
+        interfaces:
+            ActivityRepository:
+                config:
+                     dir: "{{.InterfaceDir}}/mocks"

@@ -8,6 +8,8 @@ import (
 )
 
 var streamFlag bool
+var description string
+var personsCnt int
 
 var rootCmd = &cobra.Command{
 	Use:   "root",
@@ -27,5 +29,16 @@ func Execute() {
 
 func init() {
 	rootCmd.AddCommand(activityCmd)
+
 	activityCmd.Flags().BoolVarP(&streamFlag, `stream`, `s`, false, `use stream`)
+
+	activityCmd.AddCommand(addCmd)
+
+	addCmd.Flags().StringVarP(&description, `description`, `d`, ``, `add your description for activity`)
+	addCmd.Flags().IntVarP(&personsCnt, `persons`, `p`, 0, `add persons count for your activity`)
+
+	activityCmd.AddCommand(searchCmd)
+	searchCmd.Flags().StringVarP(&description, `description`, `d`, ``, `search activity by word or phrase`)
+
+	activityCmd.AddCommand(listCmd)
 }

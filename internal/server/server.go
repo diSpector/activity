@@ -4,26 +4,32 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/diSpector/activity.git/pkg/activity"
+	"github.com/diSpector/activity.git/internal/server/usecase"
+	"github.com/diSpector/activity.git/pkg/activity/entities"
 	pb "github.com/diSpector/activity.git/pkg/activity/grpc"
 	"github.com/pkg/errors"
 )
 
 type Server struct {
-	Url string
+	url string
+	use usecase.ActivityUseCase
 	pb.UnimplementedActivityApiServer
 }
 
-func New(url string) *Server {
-	return &Server{Url: url}
+func New(url string, use usecase.ActivityUseCase) *Server {
+	return &Server{
+		url: url,
+		use: use,
+	}
 }
 
 func (s *Server) GetActivity(ctx context.Context, empty *pb.Empty) (*pb.Activity, error) {
-	req, err := http.NewRequest("GET", s.Url, nil)
+	req, err := http.NewRequest("GET", s.url, nil)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -40,26 +46,27 @@ func (s *Server) GetActivity(ctx context.Context, empty *pb.Empty) (*pb.Activity
 		return nil, errors.WithStack(err)
 	}
 
-	var act activity.Activity
+	var act entities.Activity
 	err = json.Unmarshal(body, &act)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
-	return &pb.Activity{
-		Activity:      act.Activity,
-		Type:          act.Type,
-		Participants:  act.Participants,
-		Price:         act.Price,
-		Link:          act.Link,
-		Key:           act.Key,
-		Accessibility: act.Accessibility,
-	}, nil
+	actId, err := s.use.Save(&act)
+	if err != nil {
+		log.Println(`activity not saved in db:`, err)
+	} else {
+		log.Println(`saved new activity:`, actId)
+	}
 
+	return &pb.Activity{
+		Activity:     act.Activity,
+		Participants: act.Participants,
+	}, nil
 }
 
 func (s *Server) GetActivityStream(empty *pb.Empty, stream pb.ActivityApi_GetActivityStreamServer) error {
-	req, err := http.NewRequest("GET", s.Url, nil)
+	req, err := http.NewRequest("GET", s.url, nil)
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -75,7 +82,7 @@ func (s *Server) GetActivityStream(empty *pb.Empty, stream pb.ActivityApi_GetAct
 		return errors.WithStack(err)
 	}
 
-	var act activity.Activity
+	var act entities.Activity
 	err = json.Unmarshal(body, &act)
 	if err != nil {
 		return errors.WithStack(err)
@@ -89,6 +96,66 @@ func (s *Server) GetActivityStream(empty *pb.Empty, stream pb.ActivityApi_GetAct
 			return err
 		}
 		time.Sleep(200 * time.Millisecond)
+	}
+
+	return nil
+}
+
+func (s *Server) AddActivity(ctx context.Context, activity *pb.Activity) (*pb.Empty, error) {
+	act := &entities.Activity{
+		Activity:     activity.Activity,
+		Participants: activity.Participants,
+	}
+
+	actId, err := s.use.Save(act)
+	if err != nil {
+		return nil, err
+	}
+
+	if err != nil {
+		log.Println(`activity not saved in db:`, err)
+	} else {
+		log.Println(`saved new activity:`, actId)
+	}
+
+	return &pb.Empty{}, nil
+}
+
+func (s *Server) SearchActivities(desc *pb.Description, stream pb.ActivityApi_SearchActivitiesServer) error {
+	acts, err := s.use.Search(desc.Text)
+	if err != nil {
+		return err
+	}
+
+	for i := range acts {
+		act := pb.Activity{
+			Activity:     acts[i].Activity,
+			Participants: acts[i].Participants,
+		}
+		err := stream.Send(&act)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Server) ListActivities(_ *pb.Empty, stream pb.ActivityApi_ListActivitiesServer) error {
+	acts, err := s.use.List()
+	if err != nil {
+		return err
+	}
+
+	for i := range acts {
+		act := pb.Activity{
+			Activity:     acts[i].Activity,
+			Participants: acts[i].Participants,
+		}
+		err := stream.Send(&act)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
